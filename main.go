@@ -1,9 +1,11 @@
 package main
 
 /*
-#cgo CFLAGS: -Ilib/openvpn/include
-#cgo LDFLAGS: -fPIC -I.
+#include <stdlib.h>
 #include <openvpn-plugin.h>
+#cgo CFLAGS: -Ilib/openvpn/include
+#cgo CPPFLAGS: -Ilib/openvpn/include
+#cgo LDFLAGS: -fPIC
 */
 import "C"
 
@@ -13,19 +15,19 @@ func openvpn_plugin_min_version_required_v1() C.int {
 	return 3
 }
 
-// Plugin initialization
-//export openvpn_plugin_open_v3
-func openvpn_plugin_open_v3(struct_version C.int,
-	arguments *C.openvpn_plugin_args_open_in,
-	retptr *C.openvpn_plugin_args_open_return) C.int {
-
+//export InitializePlugin
+func InitializePlugin(struct_version C.int,
+	arguments *C.struct_openvpn_plugin_args_open_in,
+	retptr *C.struct_openvpn_plugin_args_open_return) C.int {
+	return 0
 }
 
 // Handle authentication attempt
-//export openvpn_plugin_func_v3
-func openvpn_plugin_func_v3(struct_version C.int,
-	arguments *C.openvpn_plugin_args_func_in,
-	retptr *C.openvpn_plugin_args_func_return) C.int {
+//export Authenticate
+func Authenticate(struct_version C.int,
+	arguments *C.struct_openvpn_plugin_args_func_in,
+	retptr *C.struct_openvpn_plugin_args_func_return) C.int {
+	return 0
 }
 
 // Plugin close
