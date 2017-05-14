@@ -1,3 +1,6 @@
 [submodule "lib/openvpn"]
 	path = lib/openvpn
 	url = https://github.com/OpenVPN/openvpn
+[submodule "vendor/github.com/duosecurity/duo_api_golang"]
+	path = vendor/github.com/duosecurity/duo_api_golang
+	url = https://github.com/duosecurity/duo_api_golang
