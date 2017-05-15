@@ -4,3 +4,6 @@
 [submodule "vendor/github.com/duosecurity/duo_api_golang"]
 	path = vendor/github.com/duosecurity/duo_api_golang
 	url = https://github.com/duosecurity/duo_api_golang
+[submodule "vendor/github.com/spf13/viper"]
+	path = vendor/github.com/spf13/viper
+	url = https://github.com/spf13/viper.git
