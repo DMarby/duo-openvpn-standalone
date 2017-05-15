@@ -34,7 +34,6 @@ func errorLog(logFunction C.plugin_log_t, message string) {
 func createPluginContext(retptr *C.struct_openvpn_plugin_args_open_return, logger C.plugin_log_t) {
 	context := new(C.plugin_context)
 	context.logger = logger
-
 	retptr.handle = (*C.openvpn_plugin_handle_t)(unsafe.Pointer(context))
 }
 
@@ -46,13 +45,13 @@ func getLogger(context *C.struct_plugin_context) (logger C.plugin_log_t) {
 	return context.logger
 }
 
-func getArguments(argv **C.char, length C.int) []string {
-	argvslice := (*[1 << 30]*C.char)(unsafe.Pointer(argv))[:length:length]
-	arguments := make([]string, length)
+func readCharArray(argv **C.char, length C.int) []string {
+	slice := (*[1 << 30]*C.char)(unsafe.Pointer(argv))[:length:length]
+	strings := make([]string, length)
 
-	for i, s := range argvslice {
-		arguments[i] = C.GoString(s)
+	for i, s := range slice {
+		strings[i] = C.GoString(s)
 	}
 
-	return arguments
+	return strings
 }
