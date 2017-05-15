@@ -11,8 +11,10 @@ import "C"
 
 import (
 	"os"
+	"regexp"
 	"strings"
-	"unsafe"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"fmt"
 
@@ -138,7 +140,7 @@ func InitializePlugin(structVersion C.int,
 func getEnv(key string, envp []string) string {
 	for _, item := range envp {
 		if strings.HasPrefix(item, key) && strings.Contains(item, "=") {
-			split := strings.Split(item, "=")
+			split := strings.SplitN(item, "=", 2)
 
 			if len(split) > 1 {
 				return split[1]
@@ -166,10 +168,61 @@ func writeResult(logger C.plugin_log_t, controlFilePath string, succeeded bool) 
 
 }
 
+type user struct {
+	Username string
+	Password string
+}
+
+func findUser(users []user, username string) *user {
+	for _, user := range users {
+		if user.Username == username {
+			return &user
+		}
+	}
+
+	return nil
+}
+
 func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, password string, ip string) {
-	// TODO: Read username/password from config and verify first
+	var users []user
+	err := viper.UnmarshalKey("users", &users)
+
+	if err != nil {
+		errorLog(logger, err.Error())
+		writeResult(logger, controlFilePath, false)
+		return
+	}
+
+	user := findUser(users, username)
+
+	if user == nil {
+		errorLog(logger, fmt.Sprintf("Unknown user %s", username))
+		writeResult(logger, controlFilePath, false)
+		return
+	}
+
+	var parsedPassword = password
+	var authMethod = "auto"
+
+	passRegex := regexp.MustCompile("(^.*),([0-9]{6,7}|push|phone|sms)$")
+
+	if passRegex.MatchString(password) {
+		passRegexMatch := passRegex.FindStringSubmatch(password)
+
+		if len(passRegexMatch) > 2 {
+			parsedPassword = passRegexMatch[1]
+			authMethod = passRegexMatch[2]
+		}
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(parsedPassword)); err != nil {
+		errorLog(logger, fmt.Sprintf("Wrong password for user %s", username))
+		writeResult(logger, controlFilePath, false)
+		return
+	}
+
 	duo := createDuoClient()
-	err := verifyDuo(duo)
+	err = verifyDuo(duo)
 
 	if err != nil {
 		errorLog(logger, err.Error())
@@ -199,8 +252,14 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		writeResult(logger, controlFilePath, false)
 		return
 	case "auth":
-		// TODO: Check if password contains ,<123456> or ,phone or ,push, if so use that (if available) instead
-		auth, err := duo.Auth("auto", authapi.AuthUsername(username), authapi.AuthIpAddr(ip), authapi.AuthDevice("auto"))
+		var auth *authapi.AuthResult
+		var err error
+
+		if authMethod != "auto" && authMethod != "push" && authMethod != "phone" && authMethod != "sms" {
+			auth, err = duo.Auth("passcode", authapi.AuthUsername(username), authapi.AuthIpAddr(ip), authapi.AuthPasscode(authMethod))
+		} else {
+			auth, err = duo.Auth(authMethod, authapi.AuthUsername(username), authapi.AuthIpAddr(ip), authapi.AuthDevice("auto"))
+		}
 
 		if err != nil {
 			errorLog(logger, err.Error())
@@ -234,7 +293,7 @@ func Authenticate(structVersion C.int,
 	envLength C.int,
 	retptr *C.struct_openvpn_plugin_args_func_return) C.int {
 
-	// Get the plugin context we passed from the open function
+	// Get the plugin context we passed from the InitializePlugin function
 	context := getContext(arguments.handle)
 	logger := getLogger(context)
 
@@ -272,11 +331,7 @@ func Authenticate(structVersion C.int,
 
 // openvpn_plugin_close_v1 deinitializes the plugin
 //export openvpn_plugin_close_v1
-func openvpn_plugin_close_v1(handle C.openvpn_plugin_handle_t) {
-	// TODO: Test this
-	context := getContext(handle)
-	C.free(unsafe.Pointer(context))
-}
+func openvpn_plugin_close_v1(handle C.openvpn_plugin_handle_t) {}
 
 // Define main to allow us to create a shared library
 func main() {}
