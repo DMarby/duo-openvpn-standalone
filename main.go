@@ -20,7 +20,9 @@ import (
 
 	duo "github.com/duosecurity/duo_api_golang"
 	"github.com/duosecurity/duo_api_golang/authapi"
+	"github.com/spf13/cobra"
 	viper "github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // openvpn_plugin_min_version_required_v1 declares the minimum plugin api version required
@@ -33,12 +35,11 @@ var requiredConfigurationKeys = []string{
 	"integration_key",
 	"secret_key",
 	"api_hostname",
-	"users",
 }
 
-func loadConfig(argv []string) error {
-	if len(argv) > 1 { // If we get an argument from OpenVPN, explicitly set the config file to that
-		viper.SetConfigFile(argv[1])
+func loadConfig(configPath string) error {
+	if configPath != "" { // If we got an explicit configPath, set config to that
+		viper.SetConfigFile(configPath)
 	} else { // Otherwise read the config from the work directory, or /etc/duo-openvpn-standalone.yml
 		viper.SetConfigName("duo-openvpn-standalone")
 		viper.AddConfigPath("/etc/")
@@ -56,6 +57,24 @@ func loadConfig(argv []string) error {
 	if err != nil {
 		return fmt.Errorf("Error validating configuration %s", err.Error())
 	}
+
+	return nil
+}
+
+func saveConfig(configPath string, tempConfig *config) error {
+	bytes, err := yaml.Marshal(tempConfig)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(configPath)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	file.Write(bytes)
 
 	return nil
 }
@@ -112,7 +131,13 @@ func InitializePlugin(structVersion C.int,
 
 	argv := readCharArray(arguments.argv, argumentsLength)
 
-	err := loadConfig(argv)
+	var configPath = ""
+
+	if len(argv) > 1 {
+		configPath = argv[1] // If we get an argument from OpenVPN, explicitly set the config file to that
+	}
+
+	err := loadConfig(configPath)
 
 	if err != nil {
 		errorLog(logger, err.Error())
@@ -169,8 +194,15 @@ func writeResult(logger C.plugin_log_t, controlFilePath string, succeeded bool) 
 }
 
 type user struct {
-	Username string
-	Password string
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+type config struct {
+	IntegrationKey string `mapstructure:"integration_key" yaml:"integration_key"`
+	SecretKey      string `mapstructure:"secret_key" yaml:"secret_key"`
+	APIHostname    string `mapstructure:"api_hostname" yaml:"api_hostname"`
+	Users          []user `yaml:"users,omitempty"`
 }
 
 func findUser(users []user, username string) *user {
@@ -306,7 +338,13 @@ func Authenticate(structVersion C.int,
 
 	argv := readCharArray(arguments.argv, argumentsLength)
 
-	err := loadConfig(argv)
+	var configPath = ""
+
+	if len(argv) > 1 {
+		configPath = argv[1] // If we get an argument from OpenVPN, explicitly set the config file to that
+	}
+
+	err := loadConfig(configPath)
 
 	if err != nil {
 		errorLog(logger, err.Error())
@@ -333,5 +371,193 @@ func Authenticate(structVersion C.int,
 //export openvpn_plugin_close_v1
 func openvpn_plugin_close_v1(handle C.openvpn_plugin_handle_t) {}
 
-// Define main to allow us to create a shared library
-func main() {}
+// Define main for CLI functionality
+func main() {
+	var configPath string
+
+	var configCmd = &cobra.Command{
+		Use:   "config <integration_key> <secret_key> <api_hostname>",
+		Short: "Create or update configuration",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 3 {
+				return fmt.Errorf("Invalid arguments")
+			}
+
+			err := loadConfig(configPath)
+
+			if err != nil {
+				if viper.ConfigFileUsed() != "" {
+					configPath = viper.ConfigFileUsed()
+				} else {
+					configPath = "/etc/duo-openvpn-standalone.yml"
+				}
+			}
+
+			var tempConfig config
+			err = viper.Unmarshal(&tempConfig)
+
+			tempConfig.IntegrationKey = args[0]
+			tempConfig.SecretKey = args[1]
+			tempConfig.APIHostname = args[2]
+
+			if err != nil {
+				return err
+			}
+
+			err = saveConfig(configPath, &tempConfig)
+
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Saved config to %s\n", configPath)
+			return nil
+		},
+	}
+
+	var usersCmd = &cobra.Command{
+		Use:   "users",
+		Short: "List, add and remove users",
+	}
+
+	var listCommand = &cobra.Command{
+		Use:   "list",
+		Short: "List all users",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := loadConfig(configPath)
+
+			if err != nil {
+				return err
+			}
+
+			var users []user
+			err = viper.UnmarshalKey("users", &users)
+
+			if err != nil {
+				return err
+			}
+
+			if len(users) == 0 {
+				fmt.Printf("There are no users \n")
+				return nil
+			}
+
+			fmt.Printf("Users: \n")
+
+			for _, user := range users {
+				fmt.Printf("%s\n", user.Username)
+			}
+
+			return nil
+		},
+	}
+
+	var addCommand = &cobra.Command{
+		Use:   "add <username> <password>",
+		Short: "Add a new user",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := loadConfig(configPath)
+
+			if err != nil {
+				if viper.ConfigFileUsed() != "" {
+					configPath = viper.ConfigFileUsed()
+				} else {
+					configPath = "/etc/duo-openvpn-standalone.yml"
+				}
+			}
+
+			var tempConfig config
+			err = viper.Unmarshal(&tempConfig)
+
+			if err != nil {
+				return err
+			}
+
+			for _, user := range tempConfig.Users {
+				if user.Username == args[0] {
+					return fmt.Errorf("This user already exists!")
+				}
+			}
+
+			hashedPass, err := bcrypt.GenerateFromPassword([]byte(args[1]), bcrypt.DefaultCost)
+
+			if err != nil {
+				return err
+			}
+
+			tempConfig.Users = append(tempConfig.Users, user{
+				Username: args[0],
+				Password: string(hashedPass),
+			})
+
+			err = saveConfig(configPath, &tempConfig)
+
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Added user %s to config at %s\n", args[0], configPath)
+
+			return nil
+		},
+	}
+
+	var removeCommand = &cobra.Command{
+		Use:   "remove <username>",
+		Short: "Remove a user",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("Invalid arguments")
+			}
+
+			err := loadConfig(configPath)
+
+			if err != nil {
+				return err
+			}
+
+			if viper.ConfigFileUsed() != "" {
+				configPath = viper.ConfigFileUsed()
+			} else {
+				configPath = "/etc/duo-openvpn-standalone.yml"
+			}
+
+			var tempConfig config
+			err = viper.Unmarshal(&tempConfig)
+
+			if err != nil {
+				return err
+			}
+
+			var found = false
+
+			for i, user := range tempConfig.Users {
+				if user.Username == args[0] {
+					tempConfig.Users = append(tempConfig.Users[:i], tempConfig.Users[i+1:]...)
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return fmt.Errorf("This user does not exist!")
+			}
+
+			err = saveConfig(configPath, &tempConfig)
+
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Removed user %s to config at %s\n", args[0], configPath)
+
+			return nil
+		},
+	}
+
+	var rootCmd = &cobra.Command{Use: "duo-openvpn-standalone"}
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config-path", "c", "", "Path to the configuration file")
+	rootCmd.AddCommand(configCmd, usersCmd)
+	usersCmd.AddCommand(listCommand, addCommand, removeCommand)
+	rootCmd.Execute()
+}
