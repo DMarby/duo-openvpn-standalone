@@ -41,19 +41,19 @@ To remove a user:
 
 ## Development
 Compile the plugin by running `make`.
-Create a configuration file in `openvpn/duo-openvpn-standalone.yaml`, using the CLI tool:
+Create a configuration file in `docker/duo-openvpn-standalone.yml`, using the CLI tool:
 ```
-./duo-openvpn-standalone -c openvpn/duo-openvpn-standalone.yml <integration key> <secret key> <api hostname>
+./duo-openvpn-standalone -c docker/duo-openvpn-standalone.yml <integration key> <secret key> <api hostname>
 ```
 Add a user to test with:
 ```
-./duo-openvpn-standalone -c openvpn/duo-openvpn-standalone.yml <username> <password>
+./duo-openvpn-standalone -c docker/duo-openvpn-standalone.yml <username> <password>
 ```
 Spin up a local docker container with the plugin loaded:
 ```
 make docker
 ```
-You can connect to it by importing the `openvpn/client.ovpn` file into your OpenVPN client of choice.
+You can connect to it by importing the `docker/client.ovpn` file into your OpenVPN client of choice.
 
 ## License
 See [LICENSE.md](LICENSE.md)

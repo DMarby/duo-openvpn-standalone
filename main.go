@@ -177,9 +177,12 @@ func getEnv(key string, envp []string) string {
 }
 
 func writeResult(logger C.plugin_log_t, controlFilePath string, succeeded bool) {
+	debugLog(logger, fmt.Sprintf("Writing result %t", succeeded))
+
 	file, err := os.Create(controlFilePath)
 
 	if err != nil {
+		errorLog(logger, fmt.Sprintf("Error writing result %s", err.Error()))
 		return
 	}
 
@@ -312,6 +315,8 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		}
 
 		return
+	default:
+		errorLog(logger, fmt.Sprintf("Unknown preauth response %s", preAuth.Response.Result))
 	}
 
 	writeResult(logger, controlFilePath, false)
@@ -329,12 +334,12 @@ func Authenticate(structVersion C.int,
 	context := getContext(arguments.handle)
 	logger := getLogger(context)
 
-	debugLog(logger, "Authentication attempt")
-
 	if structVersion != C.OPENVPN_PLUGINv3_STRUCTVER {
 		errorLog(logger, "Struct version does not match")
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
+
+	debugLog(logger, "Authentication attempt")
 
 	argv := readCharArray(arguments.argv, argumentsLength)
 
@@ -361,6 +366,8 @@ func Authenticate(structVersion C.int,
 	if controlFilePath == "" || username == "" || password == "" || ip == "" {
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
+
+	debugLog(logger, fmt.Sprintf("Deferring authentication for user %s", username))
 
 	go verifyUser(logger, controlFilePath, username, password, ip)
 

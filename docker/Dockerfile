@@ -13,6 +13,7 @@ RUN make
 
 WORKDIR /etc/openvpn
 
-COPY openvpn ./
+COPY docker/openvpn ./
+COPY docker/duo-openvpn-standalone.yml /etc/duo-openvpn-standalone.yml
 
 CMD ["./openvpn.sh"]

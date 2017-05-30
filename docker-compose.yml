@@ -3,6 +3,7 @@ services:
   openvpn:
     build:
       context: .
+      dockerfile: docker/Dockerfile
     ports:
       - 1194:1194/udp
     cap_add:

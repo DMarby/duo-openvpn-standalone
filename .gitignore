@@ -1,4 +1,4 @@
 duo-openvpn-standalone.so
 duo-openvpn-standalone.h
 duo-openvpn-standalone
-openvpn/duo-openvpn-standalone.yml
+docker/duo-openvpn-standalone.yml
