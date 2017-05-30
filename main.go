@@ -129,6 +129,8 @@ func InitializePlugin(structVersion C.int,
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
+	debugLog(logger, "Initializing")
+
 	argv := readCharArray(arguments.argv, argumentsLength)
 
 	var configPath = ""
@@ -137,6 +139,8 @@ func InitializePlugin(structVersion C.int,
 		configPath = argv[1] // If we get an argument from OpenVPN, explicitly set the config file to that
 	}
 
+	debugLog(logger, "Loading configuration")
+
 	err := loadConfig(configPath)
 
 	if err != nil {
@@ -144,12 +148,16 @@ func InitializePlugin(structVersion C.int,
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
+	debugLog(logger, "Verifying duo")
+
 	err = verifyDuo(createDuoClient())
 
 	if err != nil {
 		errorLog(logger, err.Error())
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
+
+	debugLog(logger, "Creating plugin context")
 
 	// Tell OpenVPN that we want to listen to OPENVPN_PLUGIN_AUTH_USER_VERIFY
 	retptr.type_mask = (1 << (C.OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
