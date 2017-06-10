@@ -3,6 +3,7 @@ package main
 /*
 #include <openvpn-plugin.h>
 #include <stdlib.h>
+
 #cgo CPPFLAGS: -Ilib/openvpn/include
 #cgo CXXFLAGS: -std=c++11
 #cgo LDFLAGS: -fPIC
@@ -13,6 +14,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unsafe"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -383,7 +385,10 @@ func Authenticate(structVersion C.int,
 
 // openvpn_plugin_close_v1 deinitializes the plugin
 //export openvpn_plugin_close_v1
-func openvpn_plugin_close_v1(handle C.openvpn_plugin_handle_t) {}
+func openvpn_plugin_close_v1(handle C.openvpn_plugin_handle_t) {
+	context := getContext(handle)
+	C.free(unsafe.Pointer(context))
+}
 
 // Define main for CLI functionality
 func main() {

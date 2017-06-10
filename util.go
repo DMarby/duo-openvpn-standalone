@@ -2,6 +2,7 @@ package main
 
 /*
 #include <openvpn-plugin.h>
+#include <stdlib.h>
 
 void call_plugin_log(plugin_log_t plugin_log, openvpn_plugin_log_flags_t log_level, char *message) {
   plugin_log(log_level, "duo-openvpn-standalone", message);
@@ -11,7 +12,8 @@ typedef struct plugin_context {
   plugin_log_t logger;
 } plugin_context;
 
-#cgo CPPFLAGS: -I../lib/openvpn/include
+#cgo CPPFLAGS: -Ilib/openvpn/include
+#cgo CXXFLAGS: -std=c++11
 #cgo LDFLAGS: -fPIC
 */
 import "C"
@@ -20,7 +22,9 @@ import (
 )
 
 func log(logFunction C.plugin_log_t, logLevel C.openvpn_plugin_log_flags_t, message string) {
-	C.call_plugin_log(logFunction, logLevel, C.CString(message))
+	cMessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cMessage))
+	C.call_plugin_log(logFunction, logLevel, cMessage)
 }
 
 func debugLog(logFunction C.plugin_log_t, message string) {
@@ -32,7 +36,7 @@ func errorLog(logFunction C.plugin_log_t, message string) {
 }
 
 func createPluginContext(retptr *C.struct_openvpn_plugin_args_open_return, logger C.plugin_log_t) {
-	context := new(C.plugin_context)
+	context := (*C.plugin_context)(C.malloc(C.size_t(unsafe.Sizeof(C.plugin_context{}))))
 	context.logger = logger
 	retptr.handle = (*C.openvpn_plugin_handle_t)(unsafe.Pointer(context))
 }
