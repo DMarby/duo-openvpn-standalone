@@ -228,6 +228,8 @@ func findUser(users []user, username string) *user {
 }
 
 func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, password string, ip string) {
+	debugLog(logger, "Loading users")
+
 	var users []user
 	err := viper.UnmarshalKey("users", &users)
 
@@ -237,6 +239,8 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		return
 	}
 
+	debugLog(logger, "Finding user")
+
 	user := findUser(users, username)
 
 	if user == nil {
@@ -244,6 +248,8 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		writeResult(logger, controlFilePath, false)
 		return
 	}
+
+	debugLog(logger, "Parsing password")
 
 	var parsedPassword = password
 	var authMethod = "auto"
@@ -259,13 +265,20 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		}
 	}
 
+	debugLog(logger, "Comparing password to hash")
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(parsedPassword)); err != nil {
 		errorLog(logger, fmt.Sprintf("Wrong password for user %s", username))
 		writeResult(logger, controlFilePath, false)
 		return
 	}
 
+	debugLog(logger, "Creating duo client")
+
 	duo := createDuoClient()
+
+	debugLog(logger, "Verifying duo")
+
 	err = verifyDuo(duo)
 
 	if err != nil {
@@ -273,6 +286,8 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		writeResult(logger, controlFilePath, false)
 		return
 	}
+
+	debugLog(logger, "Running duo preauth")
 
 	preAuth, err := duo.Preauth(authapi.PreauthUsername(username), authapi.PreauthIpAddr(ip))
 
@@ -288,6 +303,8 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 		return
 	}
 
+	debugLog(logger, "Handling duo preauth response")
+
 	switch preAuth.Response.Result {
 	case "allow":
 		writeResult(logger, controlFilePath, true)
@@ -298,6 +315,8 @@ func verifyUser(logger C.plugin_log_t, controlFilePath string, username string, 
 	case "auth":
 		var auth *authapi.AuthResult
 		var err error
+
+		debugLog(logger, "Running duo auth")
 
 		if authMethod != "auto" && authMethod != "push" && authMethod != "phone" && authMethod != "sms" {
 			auth, err = duo.Auth("passcode", authapi.AuthUsername(username), authapi.AuthIpAddr(ip), authapi.AuthPasscode(authMethod))
