@@ -26,12 +26,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// openvpn_plugin_min_version_required_v1 declares the minimum plugin api version required
-//export openvpn_plugin_min_version_required_v1
-func openvpn_plugin_min_version_required_v1() C.int {
-	return 3
-}
-
 var requiredConfigurationKeys = []string{
 	"integration_key",
 	"secret_key",

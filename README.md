@@ -14,6 +14,22 @@ If you want to explicitly set a config path, define it after the path to the .so
 plugin /path/to/duo-openvpn-standalone.so /path/to/config.yml
 ```
 
+### Using with daemon mode
+If you want to use the plugin when running openvpn in daemon mode, you need to use the intermediary c++ shared library as well.
+
+In order to build it, run `make intermediary`.
+
+This will create a file named `intermediary.so` in the `intermediary` directory.
+To use it, add the following to your openvpn server configuration:
+```
+plugin /path/to/intermediary.so /path/to/duo-openvpn-standalone.so
+```
+To pass on the config path, simply add it to the end:
+```
+plugin /path/to/intermediary.so /path/to/duo-openvpn-standalone.so /path/to/config.yml
+```
+
+### Configuration
 In order to create the configuration, use the CLI tool:
 ```
 ./duo-openvpn-standalone config <integration key> <secret key> <api hostname>

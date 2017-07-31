@@ -20,4 +20,7 @@ docker:
 intermediary:
 	$(MAKE) -C intermediary
 
-.PHONY: module clean docker install intermediary
+docker_intermediary:
+	docker-compose -f docker-compose.yml -f docker-compose-intermediary.yml up --build
+
+.PHONY: module clean docker install intermediary docker_intermediary

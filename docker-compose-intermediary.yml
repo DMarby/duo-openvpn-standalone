@@ -1,0 +1,4 @@
+version: "3"
+services:
+  openvpn:
+    command: /etc/openvpn/openvpn.sh /etc/openvpn/server-intermediate.conf
