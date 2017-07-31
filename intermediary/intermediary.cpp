@@ -23,7 +23,7 @@ struct plugin {
 plugin p = plugin();
 
 int openvpn_plugin_min_version_required_v1() {
-	return 3;
+  return 3;
 }
 
 int openvpn_plugin_select_initialization_point_v1() {
