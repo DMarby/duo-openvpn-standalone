@@ -376,7 +376,7 @@ func Authenticate(structVersion C.int,
 		return C.OPENVPN_PLUGIN_FUNC_ERROR
 	}
 
-	debugLog(logger, fmt.Sprintf("Deferring authentication for user %s", username))
+	debugLog(logger, fmt.Sprintf("Deferring authentication for user %s (%s), path %s", username, ip, controlFilePath))
 
 	go verifyUser(logger, controlFilePath, username, password, ip)
 
