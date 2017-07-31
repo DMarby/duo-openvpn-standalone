@@ -2,3 +2,5 @@ duo-openvpn-standalone.so
 duo-openvpn-standalone.h
 duo-openvpn-standalone
 docker/duo-openvpn-standalone.yml
+intermediary.so
+intermediary.o

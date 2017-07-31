@@ -9,6 +9,7 @@ clean:
 	go clean
 	-rm -f ${MODULE}.so ${MODULE}.h
 	-docker-compose down
+	$(MAKE) -C intermediary clean
 
 install:
 	go install
@@ -16,4 +17,7 @@ install:
 docker:
 	docker-compose up --build
 
-.PHONY: module clean docker install
+intermediary:
+	$(MAKE) -C intermediary
+
+.PHONY: module clean docker install intermediary
