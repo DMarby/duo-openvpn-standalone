@@ -47,7 +47,7 @@ Create a configuration file in `docker/duo-openvpn-standalone.yml`, using the CL
 ```
 Add a user to test with:
 ```
-./duo-openvpn-standalone -c docker/duo-openvpn-standalone.yml <username> <password>
+./duo-openvpn-standalone -c docker/duo-openvpn-standalone.yml users add <username> <password>
 ```
 Spin up a local docker container with the plugin loaded:
 ```
