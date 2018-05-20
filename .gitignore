@@ -4,3 +4,4 @@ duo-openvpn-standalone
 docker/duo-openvpn-standalone.yml
 intermediary.so
 intermediary.o
+vendor

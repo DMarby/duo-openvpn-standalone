@@ -3,7 +3,7 @@ Standalone authentication plugin for openvpn using duo.
 This plugin provides the ability to authenticate openvpn users via username/password + duo, without any other external dependencies.
 
 ## Installation
-Compile the plugin by running `make`.
+Compile the plugin by running `make`. You'll need to have [dep](https://github.com/golang/dep) installed.  
 Add the plugin to your openvpn server configuration:
 ```
 plugin /path/to/duo-openvpn-standalone.so

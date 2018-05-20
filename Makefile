@@ -1,7 +1,7 @@
 MODULE := duo-openvpn-standalone
 
 module:
-	go get
+	dep ensure
 	go build
 	go build -buildmode=c-shared -o ${MODULE}.so
 
