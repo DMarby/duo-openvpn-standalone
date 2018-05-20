@@ -4,7 +4,7 @@ package main
 #include <openvpn-plugin.h>
 #include <stdlib.h>
 
-#cgo CPPFLAGS: -Ilib/openvpn/include
+#cgo CPPFLAGS: -Ilib/openvpn
 #cgo CXXFLAGS: -std=c++11
 #cgo LDFLAGS: -fPIC
 */

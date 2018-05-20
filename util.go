@@ -12,7 +12,7 @@ typedef struct plugin_context {
   plugin_log_t logger;
 } plugin_context;
 
-#cgo CPPFLAGS: -Ilib/openvpn/include
+#cgo CPPFLAGS: -Ilib/openvpn
 #cgo CXXFLAGS: -std=c++11
 #cgo LDFLAGS: -fPIC
 */
