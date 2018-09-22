@@ -72,4 +72,4 @@ make docker
 You can connect to it by importing the `docker/client.ovpn` file into your OpenVPN client of choice.
 
 ## License
-See [LICENSE.md](LICENSE.md)
+See [LICENSE](LICENSE)
